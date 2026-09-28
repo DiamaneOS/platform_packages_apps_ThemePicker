@@ -212,14 +212,17 @@ constructor(
                                                 .debounce(200),
                                             viewModel.colorPickerViewModel2.overridingStyle,
                                             viewModel.darkModeViewModel.overridingIsDarkMode,
-                                            ::Quadruple,
+                                            // DiamaneOS: the colours follow the system's contrast
+                                            colorUpdateViewModel.contrast,
+                                            ::Quintuple,
                                         )
                                         .collect {
                                             (
                                                 selectedColor,
                                                 overridingColor,
                                                 overridingStyle,
-                                                overridingDarkMode) ->
+                                                overridingDarkMode,
+                                                contrast) ->
                                             val bundle =
                                                 Bundle().apply {
                                                     val colorNeedsUpdate = overridingColor != null
@@ -247,6 +250,7 @@ constructor(
                                                                     colorOption.seedColor,
                                                                     style,
                                                                     overridingDarkMode,
+                                                                    contrast,
                                                                 )
                                                             putIntArray(KEY_COLOR_RESOURCE_IDS, ids)
                                                             putIntArray(KEY_COLOR_VALUES, colors)
@@ -272,9 +276,11 @@ constructor(
                                     combine(
                                             viewModel.colorPickerViewModel2.overridingColorOption,
                                             viewModel.darkModeViewModel.overridingIsDarkMode,
-                                            ::Pair,
+                                            // DiamaneOS: the colours follow the system's contrast
+                                            colorUpdateViewModel.contrast,
+                                            ::Triple,
                                         )
-                                        .collect { (colorOption, darkMode) ->
+                                        .collect { (colorOption, darkMode, contrast) ->
                                             val bundle =
                                                 Bundle().apply {
                                                     if (colorOption != null) {
@@ -294,6 +300,7 @@ constructor(
                                                                     colorOption.seedColor,
                                                                     colorOption.style,
                                                                     darkMode,
+                                                                    contrast,
                                                                 )
                                                             putIntArray(KEY_COLOR_RESOURCE_IDS, ids)
                                                             putIntArray(KEY_COLOR_VALUES, colors)
@@ -370,7 +377,13 @@ constructor(
         homeScreenJob = null
     }
 
-    data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
+    data class Quintuple<A, B, C, D, E>(
+        val first: A,
+        val second: B,
+        val third: C,
+        val fourth: D,
+        val fifth: E,
+    )
 
     companion object {
         const val TAG = "ThemePickerWorkspaceCallbackBinder"
