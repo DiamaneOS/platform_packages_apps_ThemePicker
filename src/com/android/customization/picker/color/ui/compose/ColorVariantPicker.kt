@@ -166,6 +166,7 @@ fun ColorVariantPicker(
                             coroutineScope.launch { option.clickBounceAnimate() }
                         },
                     ) {
+                        // DiamaneOS: ask the scheme for each role, as getColorScheme does.
                         val materialColors = MaterialDynamicColors()
                         val colors =
                             scheme?.let {
@@ -173,19 +174,19 @@ fun ColorVariantPicker(
                                     ThemeStyle.SPRITZ ->
                                         VariantColors(
                                             background =
-                                                materialColors.secondaryFixed().getArgb(scheme),
+                                                scheme.getArgb(materialColors.secondaryFixed()),
                                             midLayer =
-                                                materialColors.secondaryFixed().getArgb(scheme),
-                                            topLayer = materialColors.primaryFixed().getArgb(scheme),
+                                                scheme.getArgb(materialColors.secondaryFixed()),
+                                            topLayer = scheme.getArgb(materialColors.primaryFixed()),
                                         )
 
                                     else ->
                                         VariantColors(
                                             background =
-                                                materialColors.tertiaryFixed().getArgb(scheme),
+                                                scheme.getArgb(materialColors.tertiaryFixed()),
                                             midLayer =
-                                                materialColors.secondaryFixed().getArgb(scheme),
-                                            topLayer = materialColors.primaryFixed().getArgb(scheme),
+                                                scheme.getArgb(materialColors.secondaryFixed()),
+                                            topLayer = scheme.getArgb(materialColors.primaryFixed()),
                                         )
                                 }
                             }
