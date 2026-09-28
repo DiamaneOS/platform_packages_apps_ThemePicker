@@ -71,7 +71,12 @@ class DarkModeViewModelTest {
 
         context = InstrumentationRegistry.getInstrumentation().targetContext
         colorUpdateViewModel =
-            ColorUpdateViewModel(context, RetainedLifecycleImpl(), darkModeStateRepository)
+            ColorUpdateViewModel(
+                context,
+                RetainedLifecycleImpl(),
+                darkModeStateRepository,
+                uiModeManager,
+            )
         darkModeViewModel = DarkModeViewModel(colorUpdateViewModel, darkModeInteractor, logger)
     }
 
