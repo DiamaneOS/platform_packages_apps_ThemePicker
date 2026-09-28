@@ -47,6 +47,8 @@ constructor(
     private val secureSettingsRepository: SecureSettingsRepository,
     @BackgroundDispatcher private val backgroundDispatcher: CoroutineDispatcher,
 ) {
+    // DiamaneOS: each colour as monet gives it, alpha included, as SystemUI applies it;
+    // control_highlight and the surface_effect colours are translucent.
     private fun addDynamicColors(
         lightColorScheme: ColorScheme,
         darkColorScheme: ColorScheme,
@@ -64,13 +66,11 @@ constructor(
                         null,
                         null,
                     ),
-                    // -0x1000000 is equivalent to 0xff000000 which doesn't fit in a Kotlin Int
                     // DiamaneOS: the colour of the previewed mode, as system_<name> resolves to
                     // system_<name>_light or _dark; above standard contrast they can differ.
-                    -0x1000000 or
-                        color.getArgb(
-                            (if (isDarkMode) darkColorScheme else lightColorScheme).materialScheme
-                        ),
+                    color.getArgb(
+                        (if (isDarkMode) darkColorScheme else lightColorScheme).materialScheme
+                    ),
                 )
             } else {
                 put(
@@ -79,10 +79,9 @@ constructor(
                         null,
                         null,
                     ),
-                    -0x1000000 or
-                        color.getArgb(
-                            (if (isDarkMode) darkColorScheme else lightColorScheme).materialScheme
-                        ),
+                    color.getArgb(
+                        (if (isDarkMode) darkColorScheme else lightColorScheme).materialScheme
+                    ),
                 )
                 put(
                     applicationContext.resources.getIdentifier(
@@ -90,8 +89,7 @@ constructor(
                         null,
                         null,
                     ),
-                    // -0x1000000 is equivalent to 0xff000000 which doesn't fit in a Kotlin Int
-                    -0x1000000 or color.getArgb(darkColorScheme.materialScheme),
+                    color.getArgb(darkColorScheme.materialScheme),
                 )
                 put(
                     applicationContext.resources.getIdentifier(
@@ -99,7 +97,7 @@ constructor(
                         null,
                         null,
                     ),
-                    -0x1000000 or color.getArgb(lightColorScheme.materialScheme),
+                    color.getArgb(lightColorScheme.materialScheme),
                 )
             }
         }
