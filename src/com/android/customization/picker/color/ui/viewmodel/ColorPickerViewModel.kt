@@ -164,6 +164,10 @@ constructor(
             }
             .distinctUntilChanged()
 
+    // DiamaneOS: the system's colour contrast. The colour previews are built at it, as SystemUI
+    // builds the colours it applies.
+    val contrast = colorUpdateViewModel.contrast
+
     @ThemeStyle.Type
     fun getPreviewingStyle(
         @ThemeStyle.Type selectedStyle: Int?,

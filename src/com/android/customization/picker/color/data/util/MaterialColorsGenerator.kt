@@ -65,7 +65,12 @@ constructor(
                         null,
                     ),
                     // -0x1000000 is equivalent to 0xff000000 which doesn't fit in a Kotlin Int
-                    -0x1000000 or color.getArgb(lightColorScheme.materialScheme),
+                    // DiamaneOS: the colour of the previewed mode, as system_<name> resolves to
+                    // system_<name>_light or _dark; above standard contrast they can differ.
+                    -0x1000000 or
+                        color.getArgb(
+                            (if (isDarkMode) darkColorScheme else lightColorScheme).materialScheme
+                        ),
                 )
             } else {
                 put(
@@ -121,20 +126,24 @@ constructor(
     /**
      * Generates the mapping from system color resources to values from color seed and style.
      *
+     * DiamaneOS: at the system's colour contrast [contrast], as SystemUI builds the colours it
+     * applies.
+     *
      * @return a list of color resource IDs and a corresponding list of their color values
      */
     suspend fun generate(
         colorSeed: Int,
         @ThemeStyle.Type style: Int,
         useDarkMode: Boolean?,
+        contrast: Float,
     ): Pair<IntArray, IntArray> {
         val isDarkMode =
             useDarkMode
                 ?: ((applicationContext.resources.configuration.uiMode and
                     Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES)
         return generate(
-            ColorScheme(colorSeed, false, style),
-            ColorScheme(colorSeed, true, style),
+            ColorScheme(colorSeed, false, style, contrast.toDouble()),
+            ColorScheme(colorSeed, true, style, contrast.toDouble()),
             isDarkMode,
         )
     }

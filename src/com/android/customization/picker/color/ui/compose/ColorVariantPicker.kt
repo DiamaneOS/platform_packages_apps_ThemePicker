@@ -115,6 +115,7 @@ fun ColorVariantPicker(
     selectedOption: Int?,
     previewingSeedColor: Int?,
     previewingIsDarkMode: Boolean,
+    contrast: Float,
     onClick: (Int) -> Unit,
     onCancel: () -> Unit,
     onConfirm: () -> Unit,
@@ -139,10 +140,16 @@ fun ColorVariantPicker(
             itemsIndexed(styleOptions) { idx, option ->
                 val isSelected = option.style == selectedOption
                 val animatedAlpha: Float by animateFloatAsState(if (isSelected) 1f else 0.25f)
+                // DiamaneOS: at the system's contrast, as SystemUI builds the colours it applies.
                 val scheme =
-                    remember(previewingSeedColor, previewingIsDarkMode) {
+                    remember(previewingSeedColor, previewingIsDarkMode, contrast) {
                         previewingSeedColor?.let {
-                            ColorScheme(previewingSeedColor, previewingIsDarkMode, option.style)
+                            ColorScheme(
+                                    previewingSeedColor,
+                                    previewingIsDarkMode,
+                                    option.style,
+                                    contrast.toDouble(),
+                                )
                                 .materialScheme
                         }
                     }

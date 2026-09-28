@@ -111,6 +111,7 @@ fun ColorFloatingSheet(
         )
     val previewingStyle: Int? by
         colorPickerViewModel.previewingStyle.collectAsStateWithLifecycle(initialValue = null)
+    val contrast: Float by colorPickerViewModel.contrast.collectAsStateWithLifecycle()
     val styleOptions = colorPickerViewModel.styleOptions.map { StyleBounceable(it) }
     val hueSliderPosition: Float by
         colorPickerViewModel.hueSliderPosition.collectAsStateWithLifecycle(
@@ -118,10 +119,16 @@ fun ColorFloatingSheet(
         )
 
     PlatformTheme {
+        // DiamaneOS: at the system's contrast, as SystemUI builds the colours it applies.
         val scheme =
-            remember(previewingColorOption, previewingIsDarkMode, previewingStyle) {
+            remember(previewingColorOption, previewingIsDarkMode, previewingStyle, contrast) {
                 previewingColorOption?.let {
-                    ColorScheme(it.seedColor, previewingIsDarkMode, previewingStyle ?: it.style)
+                    ColorScheme(
+                            it.seedColor,
+                            previewingIsDarkMode,
+                            previewingStyle ?: it.style,
+                            contrast.toDouble(),
+                        )
                         .materialScheme
                 }
             }
@@ -157,6 +164,7 @@ fun ColorFloatingSheet(
                             selectedOption = previewingStyle,
                             previewingSeedColor = previewingColorOption?.seedColor,
                             previewingIsDarkMode = previewingIsDarkMode,
+                            contrast = contrast,
                             onClick = colorPickerViewModel::onStyleOptionClick,
                             onCancel = colorPickerViewModel::cancelStyleOptionSelection,
                             onConfirm = colorPickerViewModel::confirmStyleOptionSelection,

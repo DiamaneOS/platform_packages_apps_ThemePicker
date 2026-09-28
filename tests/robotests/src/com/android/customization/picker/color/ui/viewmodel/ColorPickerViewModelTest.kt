@@ -36,6 +36,7 @@ import com.android.wallpaper.config.BaseFlags
 import com.android.wallpaper.picker.customization.ui.viewmodel.ColorUpdateViewModel
 import com.android.wallpaper.picker.customization.ui.viewmodel.FloatingToolbarTabViewModel
 import com.android.wallpaper.picker.option.ui.viewmodel.OptionItemViewModel2
+import com.android.wallpaper.testing.FakeUiModeManager
 import com.android.wallpaper.testing.collectLastValue
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
@@ -78,6 +79,7 @@ class ColorPickerViewModelTest {
     @Inject lateinit var repository: FakeColorPickerRepository
     @Inject lateinit var interactor: ColorPickerInteractor
     @Inject lateinit var darkModeStateRepository: DarkModeStateRepository
+    @Inject lateinit var uiModeManager: FakeUiModeManager
 
     @Before
     fun setUp() {
@@ -89,7 +91,12 @@ class ColorPickerViewModelTest {
         testScope = TestScope(testDispatcher)
 
         colorUpdateViewModel =
-            ColorUpdateViewModel(context, RetainedLifecycleImpl(), darkModeStateRepository)
+            ColorUpdateViewModel(
+                context,
+                RetainedLifecycleImpl(),
+                darkModeStateRepository,
+                uiModeManager,
+            )
 
         underTest =
             ColorPickerViewModel(

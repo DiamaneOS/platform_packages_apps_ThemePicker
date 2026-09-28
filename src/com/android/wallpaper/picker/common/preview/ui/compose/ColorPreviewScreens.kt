@@ -72,12 +72,19 @@ fun ColorPreviewScreens(
         darkModeViewModel.previewingIsDarkMode.collectAsStateWithLifecycle(initialValue = false)
     val previewingStyle: Int? by
         colorPickerViewModel.previewingStyle.collectAsStateWithLifecycle(initialValue = null)
+    val contrast: Float by colorPickerViewModel.contrast.collectAsStateWithLifecycle()
 
     PlatformTheme {
+        // DiamaneOS: at the system's contrast, as SystemUI builds the colours it applies.
         val scheme =
-            remember(previewingColorOption, previewingIsDarkMode, previewingStyle) {
+            remember(previewingColorOption, previewingIsDarkMode, previewingStyle, contrast) {
                 previewingColorOption?.let {
-                    ColorScheme(it.seedColor, previewingIsDarkMode, previewingStyle ?: it.style)
+                    ColorScheme(
+                            it.seedColor,
+                            previewingIsDarkMode,
+                            previewingStyle ?: it.style,
+                            contrast.toDouble(),
+                        )
                         .materialScheme
                 }
             }
