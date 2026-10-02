@@ -38,6 +38,7 @@ import com.android.wallpaper.util.PreviewUtils
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DisposableHandle
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -45,11 +46,13 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -60,6 +63,7 @@ constructor(
     @ApplicationContext private val appContext: Context,
     private val contentResolver: ContentResolver,
     @BackgroundDispatcher private val backgroundScope: CoroutineScope,
+    @BackgroundDispatcher private val backgroundDispatcher: CoroutineDispatcher,
 ) : IconStyleRepository {
     private val metadataKey = appContext.getString(R.string.themed_icon_metadata_key)
     // TODO (b/424856247): test the retry logic for getting PreviewUtils
@@ -92,17 +96,9 @@ constructor(
                                     trySend(getThemedIconEnabled(it.getUri(ICON_THEMED)))
                                 }
                             }
-                        // Icons can be set with ICON_THEMED or SET_ICON_THEMED URI
-                        contentResolver.registerContentObserver(
-                            it.getUri(ICON_THEMED),
-                            /* notifyForDescendants= */ true,
-                            contentObserver,
-                        )
-                        contentResolver.registerContentObserver(
-                            it.getUri(SET_ICON_THEMED),
-                            /* notifyForDescendants= */ true,
-                            contentObserver,
-                        )
+                        // Icons can be set with ICON_THEMED or SET_ICON_THEMED URI, and with
+                        // DiamaneOS Tally's TALLY_ICON_STYLE
+                        registerIconStyleObserver(it, contentObserver)
 
                         trySend(getThemedIconEnabled(it.getUri(ICON_THEMED)))
 
@@ -119,12 +115,51 @@ constructor(
                 initialValue = false,
             )
 
+    /**
+     * DiamaneOS Tally: the icon style Home (Launcher3's TallyIconStyle) has by name, or null where
+     * Home does not name its style (another launcher).
+     */
+    private val tallyIconStyle: Flow<IconStyle?> =
+        previewUtilsFlow
+            .flatMapLatest {
+                callbackFlow {
+                    var disposableHandle: DisposableHandle? = null
+                    if (it != null) {
+                        val contentObserver =
+                            object : ContentObserver(null) {
+                                override fun onChange(selfChange: Boolean) {
+                                    trySend(getTallyIconStyle(it))
+                                }
+                            }
+                        registerIconStyleObserver(it, contentObserver)
+                        trySend(getTallyIconStyle(it))
+                        disposableHandle = DisposableHandle {
+                            contentResolver.unregisterContentObserver(contentObserver)
+                        }
+                    } else {
+                        trySend(null)
+                    }
+                    awaitClose { disposableHandle?.dispose() }
+                }
+            }
+            .stateIn(
+                scope = backgroundScope,
+                started = SharingStarted.WhileSubscribed(),
+                initialValue = null,
+            )
+
     override val iconStyleModels: Flow<List<IconStyleModel>> =
-        isCustomizationAvailable.map { isThemedIconAvailable ->
+        previewUtilsFlow.map { previewUtils ->
+            val isThemedIconAvailable = previewUtils != null
+            // DiamaneOS Tally: Colour is offered where Home has it.
+            val isColourAvailable =
+                previewUtils != null &&
+                    withContext(backgroundDispatcher) { getTallyIconStyle(previewUtils) } != null
             ThemePickerIconStyle.entries
                 .toList()
                 // Filter entries if themed icon is not available
                 .filter { isThemedIconAvailable || it != ThemePickerIconStyle.MONOCHROME }
+                .filter { isColourAvailable || it != ThemePickerIconStyle.COLOUR }
                 .map { it.toIconStyleModel() }
         }
 
@@ -133,12 +168,46 @@ constructor(
     }
 
     override val selectedIconStyle =
-        isThemedIconActivated.map {
-            when (it) {
-                true -> ThemePickerIconStyle.MONOCHROME
-                false -> ThemePickerIconStyle.DEFAULT
+        combine(isThemedIconActivated, tallyIconStyle) { isThemedIconActivated, tallyIconStyle ->
+            tallyIconStyle
+                ?: when (isThemedIconActivated) {
+                    true -> ThemePickerIconStyle.MONOCHROME
+                    false -> ThemePickerIconStyle.DEFAULT
+                }
+        }
+
+    /** Watches every way Home's icon style can change: stock's switch and Tally's name. */
+    private fun registerIconStyleObserver(previewUtils: PreviewUtils, observer: ContentObserver) {
+        for (path in listOf(ICON_THEMED, SET_ICON_THEMED, TALLY_ICON_STYLE)) {
+            contentResolver.registerContentObserver(
+                previewUtils.getUri(path),
+                /* notifyForDescendants= */ true,
+                observer,
+            )
+        }
+    }
+
+    /** DiamaneOS Tally: Home's icon style by name, or null where Home does not name it. */
+    private fun getTallyIconStyle(previewUtils: PreviewUtils): IconStyle? {
+        val cursor =
+            contentResolver.query(
+                previewUtils.getUri(TALLY_ICON_STYLE),
+                /* projection= */ null,
+                /* selection= */ null,
+                /* selectionArgs= */ null,
+                /* sortOrder= */ null,
+            ) ?: return null
+        return cursor.use {
+            val column = it.getColumnIndex(COL_TALLY_ICON_STYLE)
+            if (column < 0 || !it.moveToNext()) return null
+            when (it.getString(column)) {
+                TALLY_STYLE_COLOUR -> ThemePickerIconStyle.COLOUR
+                TALLY_STYLE_MINIMAL -> ThemePickerIconStyle.MONOCHROME
+                TALLY_STYLE_NONE -> ThemePickerIconStyle.DEFAULT
+                else -> null
             }
         }
+    }
 
     private fun getThemedIconEnabled(uri: Uri): Boolean {
         val cursor =
@@ -197,6 +266,20 @@ constructor(
 
     override suspend fun setIconStyle(iconStyle: IconStyle): Boolean {
         previewUtilsFlow.first()?.let {
+            // DiamaneOS Tally: Colour is set by name; Minimal and Default keep stock's switch,
+            // which Home reads as Minimal on, or every app's own icon.
+            if (iconStyle == ThemePickerIconStyle.COLOUR) {
+                val values = ContentValues()
+                values.put(COL_TALLY_ICON_STYLE, TALLY_STYLE_COLOUR)
+                val rowsUpdated =
+                    contentResolver.update(
+                        it.getUri(TALLY_ICON_STYLE),
+                        values,
+                        /* where= */ null,
+                        /* selectionArgs= */ null,
+                    )
+                return rowsUpdated > 0
+            }
             val values = ContentValues()
             values.put(COL_ICON_THEMED_VALUE, iconStyle == ThemePickerIconStyle.MONOCHROME)
             val rowsUpdated =
@@ -272,6 +355,13 @@ constructor(
         const val ICON_THEMED = "icon_themed"
         const val SET_ICON_THEMED = "set_icon_themed"
         const val COL_ICON_THEMED_VALUE = "boolean_value"
+        // DiamaneOS Tally: Home's icon style by name (Launcher3's TallyIconStyle), read and set
+        // through its customization provider.
+        const val TALLY_ICON_STYLE = "tally_icon_style"
+        const val COL_TALLY_ICON_STYLE = "icon_style"
+        const val TALLY_STYLE_COLOUR = "colour"
+        const val TALLY_STYLE_MINIMAL = "minimal"
+        const val TALLY_STYLE_NONE = "none"
         // String for building uri when querying and updating the boolean to hide the app names
         private const val HIDE_APP_LABELS = "workspace_items_label_hidden"
         // Key for applying the boolean to hide the app names on the home screen, to the system

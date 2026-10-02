@@ -113,16 +113,48 @@ constructor(@ApplicationContext private val context: Context) : IconStyleViewUti
     override fun getIcon(iconStyleModel: IconStyleModel?, shapePath: String?): Icon {
         val previewIconPackageName = context.resources.getString(R.string.camera_package)
         val appIconDrawable = ShapeIconViewBinder.loadAppIcon(context, previewIconPackageName)
+        // DiamaneOS Tally: the Colour style draws the app's key in the key's own colours.
+        val appKey =
+            if (iconStyleModel?.iconStyle == ThemePickerIconStyle.COLOUR) {
+                appKeyOf(previewIconPackageName)
+            } else null
         return Icon.Loaded(
             drawable =
                 ShapeTileDrawable(
-                    context = context,
-                    path = shapePath,
-                    icon = appIconDrawable as? AdaptiveIconDrawable,
-                    isThemed = iconStyleModel?.iconStyle == ThemePickerIconStyle.MONOCHROME,
-                ),
+                        context = context,
+                        path = shapePath,
+                        icon = appIconDrawable as? AdaptiveIconDrawable,
+                        isThemed =
+                            iconStyleModel?.iconStyle == ThemePickerIconStyle.MONOCHROME ||
+                                appKey != null,
+                    )
+                    .apply {
+                        appKey?.let { (plate, glyph) ->
+                            setThemedIconBackgroundColor(plate)
+                            setThemedIconForegroundColor(glyph)
+                        }
+                    },
             contentDescription = null,
         )
+    }
+
+    /**
+     * DiamaneOS Tally: [packageName]'s key in the Colour style, its plate and glyph colours from
+     * the Tally tokens' app key table, or null for an app that keeps its own icon.
+     */
+    private fun appKeyOf(packageName: String): Pair<Int, Int>? {
+        val res = context.resources
+        val index = res.getStringArray(R.array.tally_app_key_packages).indexOf(packageName)
+        if (index < 0) return null
+        val plates = res.obtainTypedArray(R.array.tally_app_key_plates)
+        val glyphs = res.obtainTypedArray(R.array.tally_app_key_glyphs)
+        try {
+            if (index >= plates.length() || index >= glyphs.length()) return null
+            return plates.getColor(index, 0) to glyphs.getColor(index, 0)
+        } finally {
+            plates.recycle()
+            glyphs.recycle()
+        }
     }
 
     override fun bindListDivider(

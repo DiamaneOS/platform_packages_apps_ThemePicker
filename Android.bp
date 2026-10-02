@@ -73,6 +73,8 @@ android_library {
         "androidx.recyclerview_recyclerview",
         "SystemUICustomizationLib",
         "hilt_android",
+        // DiamaneOS Tally: the design tokens (the Colour icon style's app keys). Resources only.
+        "tallytokens",
         // Compose
         "PlatformComposeCore",
         "androidx.activity_activity-compose",

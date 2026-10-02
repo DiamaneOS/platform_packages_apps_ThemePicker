@@ -25,6 +25,10 @@ enum class ThemePickerIconStyle(
     override val nameResId: Int,
     @AppIconStyle override val loggingId: Int = APP_ICON_STYLE_UNSPECIFIED,
 ) : IconStyle {
-    DEFAULT(R.string.app_icons_style_default, APP_ICON_STYLE_UNSPECIFIED),
+    // DiamaneOS Tally: the Colour style, the default (Launcher3's TallyIconStyle): DiamaneOS's own
+    // apps as keys in their own colours, every other app its own icon. Its name is the picker's
+    // translated "Colour" (the clock's colour tab).
+    COLOUR(R.string.clock_color, APP_ICON_STYLE_UNSPECIFIED),
     MONOCHROME(R.string.app_icons_style_minimal, APP_ICON_STYLE_THEMED),
+    DEFAULT(R.string.app_icons_style_default, APP_ICON_STYLE_UNSPECIFIED),
 }
