@@ -35,6 +35,7 @@ import com.android.wallpaper.picker.customization.ui.viewmodel.ColorUpdateViewMo
 import com.android.wallpaper.picker.option.ui.viewmodel.OptionItemViewModel2
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.scopes.ActivityScoped
+import de.diamaneos.tally.R as TallyR
 import javax.inject.Inject
 import kotlinx.coroutines.DisposableHandle
 
@@ -144,10 +145,10 @@ constructor(@ApplicationContext private val context: Context) : IconStyleViewUti
      */
     private fun appKeyOf(packageName: String): Pair<Int, Int>? {
         val res = context.resources
-        val index = res.getStringArray(R.array.tally_app_key_packages).indexOf(packageName)
+        val index = res.getStringArray(TallyR.array.tally_app_key_packages).indexOf(packageName)
         if (index < 0) return null
-        val plates = res.obtainTypedArray(R.array.tally_app_key_plates)
-        val glyphs = res.obtainTypedArray(R.array.tally_app_key_glyphs)
+        val plates = res.obtainTypedArray(TallyR.array.tally_app_key_plates)
+        val glyphs = res.obtainTypedArray(TallyR.array.tally_app_key_glyphs)
         try {
             if (index >= plates.length() || index >= glyphs.length()) return null
             return plates.getColor(index, 0) to glyphs.getColor(index, 0)
