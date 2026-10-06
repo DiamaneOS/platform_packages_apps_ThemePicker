@@ -35,6 +35,7 @@ import com.android.customization.model.ResourceConstants
 import com.android.customization.model.color.ColorCustomizationManager
 import com.android.customization.model.color.ColorOption
 import com.android.customization.model.color.ColorOptionImpl
+import com.android.customization.model.color.ColorOptionPalettes
 import com.android.customization.model.color.ColorProvider
 import com.android.customization.model.color.ColorProviderUtil
 import com.android.customization.model.color.ColorProviderUtil.hueToColorOption
@@ -63,6 +64,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.suspendCancellableCoroutine
 
@@ -122,7 +124,9 @@ constructor(
             .filter { (screen, _) -> screen == Screen.LOCK_SCREEN }
             .map { (_, colors) -> colors }
 
-    private val _colorOptions: Flow<List<Pair<ColorType, List<ColorOption>>>> =
+    // DiamaneOS: each tab's options grouped by the colours they give (ColorOptionPalettes). The
+    // first option of each group is shown; the others give the same colours and are hidden.
+    private val colorOptionGroups: Flow<List<Pair<ColorType, List<List<ColorOption>>>>> =
         if (shouldUseThemeService) {
             homeWallpaperColors
                 .map { homeColors ->
@@ -140,6 +144,7 @@ constructor(
                         ColorType.PRESET_COLOR to (optionMap[ColorType.PRESET_COLOR] ?: emptyList()),
                     )
                 }
+                .map(::groupByColors)
                 // Fetching from color provider is time consuming. Start collecting Lazily to make
                 // sure color options are pre-populated and not re-fetched each time when entering
                 // the color floating sheet.
@@ -190,7 +195,13 @@ constructor(
                         )
                     }
                 }
+                .map(::groupByColors)
                 .shareIn(scope = scope, started = SharingStarted.WhileSubscribed(), replay = 1)
+        }
+
+    private val _colorOptions: Flow<List<Pair<ColorType, List<ColorOption>>>> =
+        colorOptionGroups.map { groupsByType ->
+            groupsByType.map { (colorType, groups) -> colorType to groups.map { it.first() } }
         }
 
     private val _freeformColorHue =
@@ -242,22 +253,42 @@ constructor(
 
     override val selectedColorOption =
         if (shouldUseThemeService) {
-                selectedThemeSettings.map { themeSettings ->
-                    themeSettings?.let {
-                        ColorOptionImpl.buildSimplifiedSeedOption(
-                            title = null,
-                            source = it.colorSource(),
-                            seedColor = it.seedColors().first().toArgb(),
-                            defaultStyle = it.themeStyle(),
-                        )
-                    }
+                // The settings' option shows before the options load, as without the groups.
+                combine(selectedThemeSettings, colorOptionGroups.onStart { emit(emptyList()) }) {
+                    themeSettings,
+                    groups ->
+                    themeSettings
+                        ?.let {
+                            ColorOptionImpl.buildSimplifiedSeedOption(
+                                title = null,
+                                source = it.colorSource(),
+                                seedColor = it.seedColors().first().toArgb(),
+                                defaultStyle = it.themeStyle(),
+                            )
+                        }
+                        ?.let { selected ->
+                            // DiamaneOS: the shown option that gives the same colours
+                            groups
+                                .flatMap { (_, groupsByType) -> groupsByType }
+                                .firstOrNull { group -> group.any { it.isEquivalent(selected) } }
+                                ?.first() ?: selected
+                        }
                 }
             } else {
-                combine(colorOptions, settingsChanged) { options, _ ->
+                combine(colorOptions, colorOptionGroups, settingsChanged) { options, groups, _ ->
                     options.forEach { (_, optionsByType) ->
                         optionsByType.forEach {
                             if (it.isActive(colorManager)) {
                                 return@combine it
+                            }
+                        }
+                    }
+                    // DiamaneOS: an applied option hidden as giving the same colours as another
+                    // shows as that one
+                    groups.forEach { (_, groupsByType) ->
+                        groupsByType.forEach { group ->
+                            if (group.any { it.isActive(colorManager) }) {
+                                return@combine group.first()
                             }
                         }
                     }
@@ -412,5 +443,12 @@ constructor(
 
     companion object {
         private const val TAG = "ColorPickerRepositoryImpl"
+
+        private fun groupByColors(
+            optionsByType: List<Pair<ColorType, List<ColorOption>>>
+        ): List<Pair<ColorType, List<List<ColorOption>>>> =
+            optionsByType.map { (colorType, options) ->
+                colorType to ColorOptionPalettes.group(options)
+            }
     }
 }
