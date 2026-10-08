@@ -123,23 +123,25 @@ constructor(
         previewUtilsFlow
             .flatMapLatest {
                 callbackFlow {
-                    var disposableHandle: DisposableHandle? = null
-                    if (it != null) {
-                        val contentObserver =
-                            object : ContentObserver(null) {
-                                override fun onChange(selfChange: Boolean) {
-                                    trySend(getTallyIconStyle(it))
-                                }
+                    if (it == null) {
+                        trySend(null)
+                        awaitClose()
+                        return@callbackFlow
+                    }
+                    val contentObserver =
+                        object : ContentObserver(null) {
+                            override fun onChange(selfChange: Boolean) {
+                                trySend(getTallyIconStyle(it))
                             }
+                        }
+                    // The observers go away however the flow ends, a failed first read included.
+                    try {
                         registerIconStyleObserver(it, contentObserver)
                         trySend(getTallyIconStyle(it))
-                        disposableHandle = DisposableHandle {
-                            contentResolver.unregisterContentObserver(contentObserver)
-                        }
-                    } else {
-                        trySend(null)
+                        awaitClose()
+                    } finally {
+                        contentResolver.unregisterContentObserver(contentObserver)
                     }
-                    awaitClose { disposableHandle?.dispose() }
                 }
             }
             .stateIn(
@@ -187,16 +189,25 @@ constructor(
         }
     }
 
-    /** DiamaneOS Tally: Home's icon style by name, or null where Home does not name it. */
+    /**
+     * DiamaneOS Tally: Home's icon style by name, or null where Home does not name it. Another
+     * launcher's provider may reject the unknown path instead of returning no rows.
+     */
     private fun getTallyIconStyle(previewUtils: PreviewUtils): IconStyle? {
         val cursor =
-            contentResolver.query(
-                previewUtils.getUri(TALLY_ICON_STYLE),
-                /* projection= */ null,
-                /* selection= */ null,
-                /* selectionArgs= */ null,
-                /* sortOrder= */ null,
-            ) ?: return null
+            try {
+                contentResolver.query(
+                    previewUtils.getUri(TALLY_ICON_STYLE),
+                    /* projection= */ null,
+                    /* selection= */ null,
+                    /* selectionArgs= */ null,
+                    /* sortOrder= */ null,
+                )
+            } catch (e: IllegalArgumentException) {
+                null
+            } catch (e: UnsupportedOperationException) {
+                null
+            } ?: return null
         return cursor.use {
             val column = it.getColumnIndex(COL_TALLY_ICON_STYLE)
             if (column < 0 || !it.moveToNext()) return null
