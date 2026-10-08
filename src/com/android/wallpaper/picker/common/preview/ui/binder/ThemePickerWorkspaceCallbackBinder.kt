@@ -30,6 +30,9 @@ import com.android.customization.model.grid.DefaultShapeGridManager.Companion.CO
 import com.android.customization.model.grid.DefaultShapeGridManager.Companion.COL_SHAPE_KEY
 import com.android.customization.picker.clock.ui.view.ClockViewFactory
 import com.android.customization.picker.color.data.util.MaterialColorsGenerator
+import com.android.customization.picker.icon.data.repository.ThemePickerIconStyleRepository.Companion.COL_TALLY_ICON_STYLE
+import com.android.customization.picker.icon.data.repository.ThemePickerIconStyleRepository.Companion.TALLY_ICON_STYLE
+import com.android.customization.picker.icon.data.repository.ThemePickerIconStyleRepository.Companion.TALLY_STYLE_COLOUR
 import com.android.customization.picker.icon.shared.model.ThemePickerIconStyle
 import com.android.systemui.shared.keyguard.shared.model.KeyguardQuickAffordanceSlots.SLOT_ID_BOTTOM_END
 import com.android.systemui.shared.keyguard.shared.model.KeyguardQuickAffordanceSlots.SLOT_ID_BOTTOM_START
@@ -323,6 +326,24 @@ constructor(
                             if (BaseFlags.get(context).isExtendibleThemeManager()) {
                                 launch {
                                     viewModel.appIconPickerViewModel.previewingIconStyle.collect {
+                                        if (it == ThemePickerIconStyle.COLOUR) {
+                                            // DiamaneOS Tally: Colour by name, as it is set.
+                                            safeSendMessage(
+                                                workspaceCallback,
+                                                MESSAGE_ID_UPDATE_COMMAND,
+                                                Bundle().apply {
+                                                    putString(
+                                                        KEY_UPDATE_METHOD,
+                                                        METHOD_SET_TALLY_ICON_STYLE,
+                                                    )
+                                                    putString(
+                                                        COL_TALLY_ICON_STYLE,
+                                                        TALLY_STYLE_COLOUR,
+                                                    )
+                                                },
+                                            )
+                                            return@collect
+                                        }
                                         safeSendMessage(
                                             workspaceCallback,
                                             MESSAGE_ID_UPDATE_ICON_THEMED,
@@ -407,6 +428,8 @@ constructor(
         const val KEY_UPDATE_METHOD = "update_method"
         private const val METHOD_SET_WORKSPACE_ITEMS_LABEL_HIDDEN =
             "/set_workspace_items_label_hidden"
+        // DiamaneOS Tally: Home's icon style by name (Launcher3's TallyIconStyle)
+        private const val METHOD_SET_TALLY_ICON_STYLE = "/$TALLY_ICON_STYLE"
 
         fun safeSendMessage(workspaceCallback: Message, what: Int, data: Bundle) {
             try {
