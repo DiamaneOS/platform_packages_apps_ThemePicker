@@ -44,7 +44,7 @@ object ColorOptionPalettes {
 
     /**
      * [options] grouped by the colours they give, in their order: the first option of each group is
-     * the one to show; the others give the same colours.
+     * the one to show. The others give the same colours.
      */
     fun group(options: List<ColorOption>): List<List<ColorOption>> {
         val groups = LinkedHashMap<List<Int>, MutableList<ColorOption>>()

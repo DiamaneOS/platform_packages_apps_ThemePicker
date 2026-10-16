@@ -140,7 +140,7 @@ fun Transition<ColorScheme>.animateThemeColor(
 }
 
 // Convert DynamicScheme to Compose ColorScheme
-// DiamaneOS: ask the scheme for each role; monet's scheme answers with the colour the system
+// DiamaneOS: ask the scheme for each role. Monet's scheme answers with the colour the system
 // applies.
 // TODO (b/450071500): use dynamiccolors library to get Compose ColorScheme when it is ready
 fun getColorScheme(scheme: DynamicScheme): ColorScheme {

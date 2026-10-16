@@ -47,7 +47,7 @@ constructor(
     private val secureSettingsRepository: SecureSettingsRepository,
     @BackgroundDispatcher private val backgroundDispatcher: CoroutineDispatcher,
 ) {
-    // DiamaneOS: each colour as monet gives it, alpha included, as SystemUI applies it;
+    // DiamaneOS: each colour as monet gives it, alpha included, as SystemUI applies it.
     // control_highlight and the surface_effect colours are translucent.
     private fun addDynamicColors(
         lightColorScheme: ColorScheme,
@@ -67,7 +67,7 @@ constructor(
                         null,
                     ),
                     // DiamaneOS: the colour of the previewed mode, as system_<name> resolves to
-                    // system_<name>_light or _dark; above standard contrast they can differ.
+                    // system_<name>_light or _dark. Above standard contrast they can differ.
                     color.getArgb(
                         (if (isDarkMode) darkColorScheme else lightColorScheme).materialScheme
                     ),

@@ -125,7 +125,7 @@ constructor(
             .map { (_, colors) -> colors }
 
     // DiamaneOS: each tab's options grouped by the colours they give (ColorOptionPalettes). The
-    // first option of each group is shown; the others give the same colours and are hidden.
+    // first option of each group is shown. The others give the same colours and are hidden.
     private val colorOptionGroups: Flow<List<Pair<ColorType, List<List<ColorOption>>>>> =
         if (shouldUseThemeService) {
             homeWallpaperColors

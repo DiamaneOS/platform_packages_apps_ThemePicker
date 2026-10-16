@@ -277,7 +277,7 @@ constructor(
 
     override suspend fun setIconStyle(iconStyle: IconStyle): Boolean {
         previewUtilsFlow.first()?.let {
-            // DiamaneOS Tally: Colour is set by name; Minimal and Default keep stock's switch,
+            // DiamaneOS Tally: Colour is set by name. Minimal and Default keep stock's switch,
             // which Home reads as Minimal on, or every app's own icon.
             if (iconStyle == ThemePickerIconStyle.COLOUR) {
                 val values = ContentValues()
