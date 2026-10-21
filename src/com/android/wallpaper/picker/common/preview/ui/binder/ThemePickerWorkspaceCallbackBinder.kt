@@ -30,9 +30,9 @@ import com.android.customization.model.grid.DefaultShapeGridManager.Companion.CO
 import com.android.customization.model.grid.DefaultShapeGridManager.Companion.COL_SHAPE_KEY
 import com.android.customization.picker.clock.ui.view.ClockViewFactory
 import com.android.customization.picker.color.data.util.MaterialColorsGenerator
-import com.android.customization.picker.icon.data.repository.ThemePickerIconStyleRepository.Companion.COL_TALLY_ICON_STYLE
-import com.android.customization.picker.icon.data.repository.ThemePickerIconStyleRepository.Companion.TALLY_ICON_STYLE
-import com.android.customization.picker.icon.data.repository.ThemePickerIconStyleRepository.Companion.TALLY_STYLE_COLOUR
+import com.android.customization.picker.icon.data.repository.TallyIconStyleSource.Companion.COL_TALLY_ICON_STYLE
+import com.android.customization.picker.icon.data.repository.TallyIconStyleSource.Companion.TALLY_ICON_STYLE
+import com.android.customization.picker.icon.data.repository.TallyIconStyleSource.Companion.TALLY_STYLE_COLOUR
 import com.android.customization.picker.icon.shared.model.ThemePickerIconStyle
 import com.android.systemui.shared.keyguard.shared.model.KeyguardQuickAffordanceSlots.SLOT_ID_BOTTOM_END
 import com.android.systemui.shared.keyguard.shared.model.KeyguardQuickAffordanceSlots.SLOT_ID_BOTTOM_START
